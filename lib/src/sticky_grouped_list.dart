@@ -49,7 +49,7 @@ class StickyGroupedListView<T, E> extends StatefulWidget {
   /// Called to build children for the list with
   /// 0 <= element, index < elements.length
   final Widget Function(BuildContext context, T element, int index)?
-      indexedItemBuilder;
+  indexedItemBuilder;
 
   /// Used to clearly indentify an element. The returned value can be of any
   /// type but must be unique for each element.
@@ -270,9 +270,9 @@ class StickyGroupedListViewState<T, E>
             if (sortedElements.isEmpty) {
               return const SizedBox.shrink();
             }
-            
+
             int actualIndex = index ~/ 2;
-            
+
             // Safety check: ensure actualIndex is within bounds
             if (actualIndex < 0 || actualIndex >= sortedElements.length) {
               return const SizedBox.shrink();
@@ -281,14 +281,15 @@ class StickyGroupedListViewState<T, E>
             if (index == hiddenIndex) {
               return Opacity(
                 opacity: widget.showFirstHeader ? 1 : 0,
-                child:
-                    widget.groupSeparatorBuilder(sortedElements[actualIndex]),
+                child: widget.groupSeparatorBuilder(
+                  sortedElements[actualIndex],
+                ),
               );
             }
 
             if (_isSeparator!(index)) {
               E curr = widget.groupBy(sortedElements[actualIndex]);
-              
+
               // Safety check: ensure we can access previous/next element
               int prevIndex = actualIndex + (widget.reverse ? 1 : -1);
               if (prevIndex >= 0 && prevIndex < sortedElements.length) {
@@ -311,7 +312,7 @@ class StickyGroupedListViewState<T, E>
           stream: _streamController.stream,
           initialData: _topElementIndex,
           builder: (_, snapshot) => _showFixedGroupHeader(snapshot.data!),
-        )
+        ),
       ],
     );
   }
@@ -321,11 +322,14 @@ class StickyGroupedListViewState<T, E>
     if (actualIndex < 0 || actualIndex >= sortedElements.length) {
       return const SizedBox.shrink();
     }
-    
+
     return widget.indexedItemBuilder == null
         ? widget.itemBuilder!(context, sortedElements[actualIndex])
         : widget.indexedItemBuilder!(
-            context, sortedElements[actualIndex], actualIndex);
+            context,
+            sortedElements[actualIndex],
+            actualIndex,
+          );
   }
 
   _positionListener() {
@@ -333,18 +337,18 @@ class StickyGroupedListViewState<T, E>
     if (sortedElements.isEmpty) {
       return;
     }
-    
+
     _headerBox ??=
         _groupHeaderKey?.currentContext?.findRenderObject() as RenderBox?;
     double headerHeight = _headerBox?.size.height ?? 0;
     _listBox ??= _key.currentContext?.findRenderObject() as RenderBox?;
     double height = _listBox?.size.height ?? 0;
-    
+
     // Safety check: avoid division by zero
     if (height == 0) {
       return;
     }
-    
+
     headerDimension = headerHeight / height;
 
     ItemPosition reducePositions(ItemPosition pos, ItemPosition current) {
@@ -355,12 +359,13 @@ class StickyGroupedListViewState<T, E>
     }
 
     // Safety check: filter and check if we have any items before calling reduce
-    final filteredPositions = _listener.itemPositions.value
-        .where((ItemPosition position) =>
-            !_isSeparator!(position.index) &&
-            headerDimension != null &&
-            position.itemTrailingEdge > headerDimension!);
-    
+    final filteredPositions = _listener.itemPositions.value.where(
+      (ItemPosition position) =>
+          !_isSeparator!(position.index) &&
+          headerDimension != null &&
+          position.itemTrailingEdge > headerDimension!,
+    );
+
     // Safety check: only call reduce if we have items
     if (filteredPositions.isEmpty) {
       return;
@@ -374,19 +379,19 @@ class StickyGroupedListViewState<T, E>
       _streamController.add(0);
     } else {
       int index = currentItem.index ~/ 2;
-      
+
       // Safety check: ensure index is within bounds
       if (index < 0 || index >= sortedElements.length) {
         return;
       }
-      
+
       // Safety check: ensure _topElementIndex is within bounds
       if (_topElementIndex < 0 || _topElementIndex >= sortedElements.length) {
         _topElementIndex = index;
         _streamController.add(_topElementIndex);
         return;
       }
-      
+
       if (_topElementIndex != index) {
         E curr = widget.groupBy(sortedElements[index]);
         E prev = widget.groupBy(sortedElements[_topElementIndex]);
@@ -405,11 +410,14 @@ class StickyGroupedListViewState<T, E>
         int? compareResult;
         // compare groups
         if (widget.groupComparator != null) {
-          compareResult =
-              widget.groupComparator!(widget.groupBy(e1), widget.groupBy(e2));
+          compareResult = widget.groupComparator!(
+            widget.groupBy(e1),
+            widget.groupBy(e2),
+          );
         } else if (widget.groupBy(e1) is Comparable) {
-          compareResult = (widget.groupBy(e1) as Comparable)
-              .compareTo(widget.groupBy(e2) as Comparable);
+          compareResult = (widget.groupBy(e1) as Comparable).compareTo(
+            widget.groupBy(e2) as Comparable,
+          );
         }
         // compare elements inside group
         if (compareResult == null || compareResult == 0) {
@@ -432,19 +440,20 @@ class StickyGroupedListViewState<T, E>
     if (index == -1) {
       return Container();
     }
-    
+
     // Safety check: ensure index is within bounds
     if (index < 0 || index >= sortedElements.length) {
       return Container();
     }
-    
+
     if (widget.fixedHeaderBuilder != null) {
       return widget.fixedHeaderBuilder!(sortedElements[index]);
     } else if (widget.elements.isNotEmpty && sortedElements.isNotEmpty) {
       _groupHeaderKey = GlobalKey();
       return Container(
-        color:
-            widget.floatingHeader ? null : widget.stickyHeaderBackgroundColor,
+        color: widget.floatingHeader
+            ? null
+            : widget.stickyHeaderBackgroundColor,
         key: _groupHeaderKey,
         width: widget.floatingHeader ? null : MediaQuery.of(context).size.width,
         child: widget.groupSeparatorBuilder(sortedElements[index]),
